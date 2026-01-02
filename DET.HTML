@@ -22,6 +22,13 @@
             display: none;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
         }
+
+        /* Ajuste do Bloco de Notas */
+        #scratchpad {
+            resize: none;
+            scrollbar-width: thin;
+            scrollbar-color: #e2e8f0 transparent;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
@@ -37,9 +44,9 @@
         <div id="word-translation-result" class="hidden-el px-3 py-2 text-xs text-indigo-600 italic border-t border-gray-50 mt-1"></div>
     </div>
 
-    <div class="max-w-2xl w-full">
+    <div class="max-w-5xl w-full">
         <!-- Header & Stats -->
-        <div class="flex justify-between items-end mb-6">
+        <div class="flex justify-between items-end mb-6 px-2">
             <div>
                 <h1 class="text-3xl font-bold text-indigo-900">DET Mastery</h1>
                 <p class="text-indigo-600 font-medium">Connective Booster (Level C1+)</p>
@@ -54,7 +61,7 @@
         </div>
 
         <!-- API Key Input -->
-        <div id="api-section" class="glass-card p-6 rounded-2xl shadow-xl mb-6 transition-all">
+        <div id="api-section" class="glass-card p-6 rounded-2xl shadow-xl mb-6 transition-all mx-2">
             <label class="block text-sm font-semibold text-gray-700 mb-2">Google Gemini API Key</label>
             <div class="flex gap-2">
                 <input type="password" id="api-key" placeholder="Insira sua API Key aqui..." class="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
@@ -63,51 +70,71 @@
             <p class="mt-2 text-xs text-gray-400">A chave será salva localmente no seu navegador para usos futuros.</p>
         </div>
 
-        <!-- Main Quiz Area -->
-        <div id="quiz-area" class="glass-card p-8 rounded-3xl shadow-2xl relative min-h-[400px] flex flex-col justify-center transition-all opacity-50 pointer-events-none">
+        <!-- Conteúdo Principal com Grid -->
+        <div class="flex flex-col md:flex-row gap-6 items-stretch px-2">
             
-            <div id="loader" class="hidden-el flex flex-col items-center gap-4">
-                <div class="loading-spinner"></div>
-                <p class="text-indigo-600 animate-pulse font-medium">Gerando desafio C1 personalizado...</p>
-            </div>
+            <!-- Main Quiz Area -->
+            <div id="quiz-area" class="flex-1 glass-card p-8 rounded-3xl shadow-2xl relative min-h-[450px] flex flex-col justify-center transition-all opacity-50 pointer-events-none">
+                
+                <div id="loader" class="hidden-el flex flex-col items-center gap-4">
+                    <div class="loading-spinner"></div>
+                    <p class="text-indigo-600 animate-pulse font-medium">Gerando desafio C1 personalizado...</p>
+                </div>
 
-            <div id="question-content">
-                <div class="mb-8">
-                    <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Tip: Double-click any word to translate</p>
-                    <p id="phrase-display" class="text-2xl font-medium text-gray-800 leading-relaxed mb-6 cursor-help" title="Double click words for help">
-                        Insira sua API Key para começar a praticar.
-                    </p>
-                    <div class="relative">
-                        <input type="text" id="answer-input" placeholder="Type the missing connective..." 
-                               class="w-full text-xl p-4 border-b-2 border-gray-200 focus:border-indigo-600 outline-none bg-transparent transition-all"
-                               onkeydown="if(event.key==='Enter') checkAnswer()">
+                <div id="question-content">
+                    <div class="mb-8">
+                        <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Tip: Double-click any word to translate</p>
+                        <p id="phrase-display" class="text-2xl font-medium text-gray-800 leading-relaxed mb-6 cursor-help" title="Double click words for help">
+                            Insira sua API Key para começar a praticar.
+                        </p>
+                        <div class="relative">
+                            <input type="text" id="answer-input" placeholder="Type the missing connective..." 
+                                   class="w-full text-xl p-4 border-b-2 border-gray-200 focus:border-indigo-600 outline-none bg-transparent transition-all"
+                                   onkeydown="if(event.key==='Enter') checkAnswer()">
+                        </div>
+                    </div>
+
+                    <div id="feedback-area" class="hidden-el mb-6 p-4 rounded-xl border">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span id="feedback-icon" class="text-2xl"></span>
+                            <h3 id="feedback-title" class="font-bold text-lg"></h3>
+                        </div>
+                        <p id="translation-text" class="text-gray-600 italic mb-2"></p>
+                        <p id="explanation-text" class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg"></p>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button id="submit-btn" onclick="checkAnswer()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all">
+                            Check Answer
+                        </button>
+                        <button id="next-btn" onclick="fetchNewQuestion()" class="hidden-el flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-emerald-200 hover:-translate-y-1 transition-all">
+                            Next Challenge →
+                        </button>
+                        <button id="audio-btn" onclick="playAudio()" class="hidden-el p-4 bg-gray-100 rounded-2xl text-gray-600 hover:bg-gray-200 transition-all" title="Ouvir frase completa">
+                            🔊
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                <div id="feedback-area" class="hidden-el mb-6 p-4 rounded-xl border">
-                    <div class="flex items-center gap-3 mb-2">
-                        <span id="feedback-icon" class="text-2xl"></span>
-                        <h3 id="feedback-title" class="font-bold text-lg"></h3>
+            <!-- Scratchpad (Bloco de Notas) -->
+            <div class="w-full md:w-80 flex flex-col">
+                <div class="glass-card p-4 rounded-3xl shadow-xl flex-1 flex flex-col min-h-[250px] md:min-h-full">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <span>📝</span> Scratchpad
+                        </h3>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">Auto-clears</span>
                     </div>
-                    <p id="translation-text" class="text-gray-600 italic mb-2"></p>
-                    <p id="explanation-text" class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg"></p>
-                </div>
-
-                <div class="flex gap-4">
-                    <button id="submit-btn" onclick="checkAnswer()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all">
-                        Check Answer
-                    </button>
-                    <button id="next-btn" onclick="fetchNewQuestion()" class="hidden-el flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-emerald-200 hover:-translate-y-1 transition-all">
-                        Next Challenge →
-                    </button>
-                    <button id="audio-btn" onclick="playAudio()" class="hidden-el p-4 bg-gray-100 rounded-2xl text-gray-600 hover:bg-gray-200 transition-all" title="Ouvir frase completa">
-                        🔊
-                    </button>
+                    <textarea id="scratchpad" 
+                              placeholder="Use este espaço para rascunhar sua resposta ou anotar palavras novas..." 
+                              class="flex-1 w-full p-4 bg-transparent border-2 border-dashed border-gray-200 rounded-2xl outline-none focus:border-indigo-300 transition-colors text-gray-600 text-sm leading-relaxed"></textarea>
                 </div>
             </div>
+
         </div>
 
-        <div class="mt-8 grid grid-cols-2 gap-4">
+        <div class="mt-8 grid grid-cols-2 gap-4 px-2">
             <div class="glass-card p-4 rounded-xl text-center">
                 <p class="text-xs text-gray-500 uppercase">Correct Total</p>
                 <p id="total-correct" class="text-2xl font-bold text-indigo-600">0</p>
@@ -312,6 +339,7 @@
 
         function resetUI() {
             document.getElementById('answer-input').value = "";
+            document.getElementById('scratchpad').value = ""; // LIMPAR BLOCO DE NOTAS
             document.getElementById('feedback-area').classList.add('hidden-el');
             document.getElementById('next-btn').classList.add('hidden-el');
             document.getElementById('audio-btn').classList.add('hidden-el');
