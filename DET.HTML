@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DET Mastery: Connectives Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .streak-fire { animation: pulse 1.5s infinite; color: #f97316; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .hidden-el { display: none; }
+        .loading-spinner { border: 4px solid rgba(0,0,0,0.1); border-left-color: #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-2xl w-full">
+        <!-- Header & Stats -->
+        <div class="flex justify-between items-end mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-900">DET Mastery</h1>
+                <p class="text-indigo-600 font-medium">Connective Booster (Level C1+)</p>
+            </div>
+            <div class="text-right">
+                <div id="streak-container" class="flex items-center gap-2 text-xl font-bold text-gray-700">
+                    <span id="streak-count">0</span>
+                    <span class="streak-fire">🔥</span>
+                </div>
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Difficulty: <span id="difficulty-label">Beginner</span></p>
+            </div>
+        </div>
+
+        <!-- API Key Input -->
+        <div id="api-section" class="glass-card p-6 rounded-2xl shadow-xl mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Google Gemini API Key</label>
+            <div class="flex gap-2">
+                <input type="password" id="api-key" placeholder="Insira sua API Key aqui..." class="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                <button onclick="saveApiKey()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 transition-colors font-semibold">Salvar</button>
+            </div>
+            <p class="mt-2 text-xs text-gray-400">Suas chaves não são armazenadas permanentemente, apenas na sessão.</p>
+        </div>
+
+        <!-- Main Quiz Area -->
+        <div id="quiz-area" class="glass-card p-8 rounded-3xl shadow-2xl relative min-h-[400px] flex flex-col justify-center transition-all opacity-50 pointer-events-none">
+            
+            <div id="loader" class="hidden-el flex flex-col items-center gap-4">
+                <div class="loading-spinner"></div>
+                <p class="text-indigo-600 animate-pulse">Gerando desafio C1...</p>
+            </div>
+
+            <div id="question-content">
+                <div class="mb-8">
+                    <p id="phrase-display" class="text-2xl font-medium text-gray-800 leading-relaxed mb-6">
+                        Insira sua API Key para começar a praticar.
+                    </p>
+                    <div class="relative">
+                        <input type="text" id="answer-input" placeholder="Type the missing connective..." 
+                               class="w-full text-xl p-4 border-b-2 border-gray-200 focus:border-indigo-600 outline-none bg-transparent transition-all"
+                               onkeydown="if(event.key==='Enter') checkAnswer()">
+                    </div>
+                </div>
+
+                <div id="feedback-area" class="hidden-el mb-6 p-4 rounded-xl border">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span id="feedback-icon" class="text-2xl"></span>
+                        <h3 id="feedback-title" class="font-bold text-lg"></h3>
+                    </div>
+                    <p id="translation-text" class="text-gray-600 italic mb-2"></p>
+                    <p id="explanation-text" class="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg"></p>
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="submit-btn" onclick="checkAnswer()" class="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all">
+                        Check Answer
+                    </button>
+                    <button id="next-btn" onclick="fetchNewQuestion()" class="hidden-el flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-emerald-200 hover:-translate-y-1 transition-all">
+                        Next Challenge →
+                    </button>
+                    <button id="audio-btn" onclick="playAudio()" class="hidden-el p-4 bg-gray-100 rounded-2xl text-gray-600 hover:bg-gray-200 transition-all">
+                        🔊
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 grid grid-cols-2 gap-4">
+            <div class="glass-card p-4 rounded-xl text-center">
+                <p class="text-xs text-gray-500 uppercase">Correct Total</p>
+                <p id="total-correct" class="text-2xl font-bold text-indigo-600">0</p>
+            </div>
+            <div class="glass-card p-4 rounded-xl text-center">
+                <p class="text-xs text-gray-500 uppercase">Interactive Reading Level</p>
+                <p id="level-indicator" class="text-2xl font-bold text-indigo-600">B2</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let apiKey = "";
+        let streak = 0;
+        let totalCorrect = 0;
+        let currentQuestion = null;
+        let difficulty = "B2";
+
+        const levels = ["B2", "C1 (Upper)", "C1 (Advanced)", "C2 (Mastery)"];
+
+        function saveApiKey() {
+            apiKey = document.getElementById('api-key').value;
+            if (apiKey) {
+                document.getElementById('api-section').classList.add('hidden-el');
+                document.getElementById('quiz-area').classList.remove('opacity-50', 'pointer-events-none');
+                fetchNewQuestion();
+            }
+        }
+
+        async function fetchNewQuestion() {
+            if (!apiKey) return;
+
+            toggleUIState(true);
+            resetUI();
+
+            const level = levels[Math.min(Math.floor(streak / 3), levels.length - 1)];
+            difficulty = level;
+            document.getElementById('level-indicator').innerText = level;
+            document.getElementById('difficulty-label').innerText = level;
+
+            const systemPrompt = `Você é um especialista no Duolingo English Test. Gere um exercício de preenchimento de lacunas (C-Test style) focado em CONECTIVOS de alto nível.
+            Nível: ${level}.
+            O JSON de resposta deve seguir este formato estritamente:
+            {
+                "phraseWithBlank": "The experiment was a success; ________, further testing is required to validate the results.",
+                "answer": "nevertheless",
+                "translation": "O experimento foi um sucesso; no entanto, testes adicionais são necessários...",
+                "explanation": "Neste contexto, 'nevertheless' é usado para introduzir um contraste com o que foi dito anteriormente, comum em escrita acadêmica."
+            }
+            A lacuna deve ser marcada com ________ (8 underscores). Use apenas conectivos apropriados para o nível indicado (ex: notwithstanding, albeit, conversely, hence).`;
+
+            try {
+                const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "Gere um novo desafio de conectivos." }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await response.json();
+                const resultText = data.candidates[0].content.parts[0].text;
+                currentQuestion = JSON.parse(resultText);
+
+                document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
+                toggleUIState(false);
+            } catch (error) {
+                showMessage("Erro ao gerar questão. Verifique sua chave API e conexão.", "error");
+                toggleUIState(false);
+            }
+        }
+
+        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+            for (let i = 0; i < retries; i++) {
+                const response = await fetch(url, options);
+                if (response.ok) return response;
+                if (i < retries - 1) await new Promise(r => setTimeout(r, backoff * Math.pow(2, i)));
+            }
+            throw new Error("Failed after retries");
+        }
+
+        function checkAnswer() {
+            if (!currentQuestion || document.getElementById('next-btn').style.display === 'block') return;
+
+            const userInput = document.getElementById('answer-input').value.trim().toLowerCase();
+            const correct = currentQuestion.answer.toLowerCase();
+            const feedbackArea = document.getElementById('feedback-area');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackIcon = document.getElementById('feedback-icon');
+
+            feedbackArea.classList.remove('hidden-el');
+            document.getElementById('translation-text').innerText = `Tradução: ${currentQuestion.translation}`;
+            document.getElementById('explanation-text').innerText = currentQuestion.explanation;
+
+            if (userInput === correct) {
+                streak++;
+                totalCorrect++;
+                feedbackArea.classList.add('bg-emerald-50', 'border-emerald-200');
+                feedbackArea.classList.remove('bg-rose-50', 'border-rose-200');
+                feedbackTitle.innerText = "Excellent Work!";
+                feedbackTitle.className = "font-bold text-lg text-emerald-700";
+                feedbackIcon.innerText = "✅";
+                document.getElementById('total-correct').innerText = totalCorrect;
+            } else {
+                streak = 0;
+                feedbackArea.classList.add('bg-rose-50', 'border-rose-200');
+                feedbackArea.classList.remove('bg-emerald-50', 'border-emerald-200');
+                feedbackTitle.innerText = `Incorrect. Expected: "${currentQuestion.answer}"`;
+                feedbackTitle.className = "font-bold text-lg text-rose-700";
+                feedbackIcon.innerText = "❌";
+            }
+
+            document.getElementById('streak-count').innerText = streak;
+            document.getElementById('submit-btn').classList.add('hidden-el');
+            document.getElementById('next-btn').classList.remove('hidden-el');
+            document.getElementById('audio-btn').classList.remove('hidden-el');
+            
+            // Highlight answer in original text
+            document.getElementById('phrase-display').innerHTML = currentQuestion.phraseWithBlank.replace("________", `<span class="text-indigo-600 font-bold border-b-2 border-indigo-600">${currentQuestion.answer}</span>`);
+        }
+
+        function toggleUIState(loading) {
+            const content = document.getElementById('question-content');
+            const loader = document.getElementById('loader');
+            if (loading) {
+                content.classList.add('hidden-el');
+                loader.classList.remove('hidden-el');
+            } else {
+                content.classList.remove('hidden-el');
+                loader.classList.add('hidden-el');
+            }
+        }
+
+        function resetUI() {
+            document.getElementById('answer-input').value = "";
+            document.getElementById('feedback-area').classList.add('hidden-el');
+            document.getElementById('next-btn').classList.add('hidden-el');
+            document.getElementById('audio-btn').classList.add('hidden-el');
+            document.getElementById('submit-btn').classList.remove('hidden-el');
+            document.getElementById('answer-input').focus();
+        }
+
+        function playAudio() {
+            if (!currentQuestion) return;
+            const fullText = currentQuestion.phraseWithBlank.replace("________", currentQuestion.answer);
+            const utterance = new SpeechSynthesisUtterance(fullText);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function showMessage(msg, type) {
+            const box = document.createElement('div');
+            box.className = `fixed top-4 right-4 p-4 rounded-xl shadow-lg text-white font-bold z-50 ${type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'}`;
+            box.innerText = msg;
+            document.body.appendChild(box);
+            setTimeout(() => box.remove(), 4000);
+        }
+
+        window.onload = () => {
+            document.getElementById('answer-input').focus();
+        };
+    </script>
+</body>
+</html>
