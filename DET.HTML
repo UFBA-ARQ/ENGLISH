@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DET Mastery: Connectives Quiz</title>
+    <title>DET Mastery: Quiz de Conectivos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -32,6 +32,19 @@
             color: #b91c1c;
             border: 1px solid #fecaca;
         }
+
+        .settings-panel {
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        .settings-panel.active {
+            max-height: 200px;
+            opacity: 1;
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
@@ -39,32 +52,49 @@
     <!-- Menu Contextual de Palavra -->
     <div id="word-menu" class="bg-white rounded-xl border border-gray-200 shadow-2xl p-2 flex flex-col gap-1 min-w-[140px]">
         <button onclick="speakSelectedWord()" class="flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-semibold text-gray-700 transition-colors">
-            <span>🔊</span> Hear
+            <span>🔊</span> Ouvir
         </button>
         <button onclick="translateSelectedWord()" class="flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-semibold text-gray-700 transition-colors">
-            <span>🌐</span> Translate
+            <span>🌐</span> Traduzir
         </button>
         <div id="word-translation-result" class="hidden px-3 py-2 text-xs text-indigo-600 italic border-t border-gray-100 mt-1"></div>
     </div>
 
     <div class="max-w-5xl w-full">
-        <!-- Header de Progresso -->
+        <!-- Cabeçalho de Progresso -->
         <div class="flex flex-wrap justify-between items-end mb-6 px-2 gap-4">
             <div>
                 <h1 class="text-4xl font-extrabold text-indigo-950 tracking-tight">DET Mastery</h1>
-                <p class="text-indigo-500 font-semibold text-sm">Advanced Connective Trainer (C1-C2)</p>
+                <p class="text-indigo-500 font-semibold text-sm">Treinador de Conectivos Avançados (C1-C2)</p>
             </div>
-            <div class="flex items-center gap-4 md:gap-8">
+            <div class="flex items-center gap-3 md:gap-6">
+                <button onclick="toggleSettings()" class="p-2 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-indigo-600" title="Configurações da API">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
                 <div id="offline-status" class="hidden offline-badge px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
-                    Offline Mode
+                    Modo Offline
                 </div>
-                <div class="flex flex-col items-end">
-                    <div id="streak-container" class="flex items-center gap-2 text-2xl font-black text-gray-800">
-                        <span id="streak-count">0</span>
-                        <span class="streak-fire">🔥</span>
-                    </div>
+                <div id="streak-container" class="flex items-center gap-2 text-2xl font-black text-gray-800">
+                    <span id="streak-count">0</span>
+                    <span class="streak-fire">🔥</span>
                 </div>
             </div>
+        </div>
+
+        <!-- Painel de Configurações da API -->
+        <div id="settings-panel" class="settings-panel glass-card p-6 rounded-3xl shadow-lg border-indigo-100">
+            <h3 class="text-sm font-bold text-indigo-900 mb-3">Configurações da API</h3>
+            <div class="flex gap-3">
+                <input type="password" id="api-key-input" placeholder="Insira a sua Google Gemini API Key..." 
+                       class="flex-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all">
+                <button onclick="saveApiKey()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-md">
+                    Guardar
+                </button>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-2 italic">* A chave é guardada apenas no seu navegador.</p>
         </div>
 
         <!-- Layout de Atividade -->
@@ -75,22 +105,22 @@
                 
                 <div id="loader" class="hidden flex flex-col items-center gap-5">
                     <div class="loading-spinner"></div>
-                    <p class="text-indigo-600 font-bold tracking-wide">Generating new challenge...</p>
+                    <p class="text-indigo-600 font-bold tracking-wide">A gerar novo desafio...</p>
                 </div>
 
                 <div id="question-content">
                     <div class="mb-10">
                         <div class="flex items-center gap-2 mb-4">
-                            <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase tracking-widest">Level: <span id="difficulty-label">B2</span></span>
-                            <span class="text-xs text-gray-400 font-medium">Tip: Double-click words for help</span>
+                            <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase tracking-widest">Nível: <span id="difficulty-label">B2</span></span>
+                            <span class="text-xs text-gray-400 font-medium">Dica: Duplo clique para ajuda</span>
                         </div>
                         
                         <p id="phrase-display" class="text-2xl md:text-3xl font-semibold text-gray-800 leading-snug mb-8 cursor-text">
-                            Waiting for the first challenge...
+                            A aguardar o primeiro desafio...
                         </p>
                         
                         <div class="relative max-w-lg">
-                            <input type="text" id="answer-input" placeholder="Type the connective..." 
+                            <input type="text" id="answer-input" placeholder="Digite o conectivo..." 
                                    class="w-full text-xl p-5 border-b-4 border-gray-100 focus:border-indigo-500 outline-none bg-transparent transition-all placeholder:text-gray-300 font-medium"
                                    autocomplete="off"
                                    onkeydown="if(event.key==='Enter') checkAnswer()">
@@ -110,10 +140,10 @@
 
                     <div class="flex gap-4">
                         <button id="submit-btn" onclick="checkAnswer()" class="flex-1 bg-indigo-600 text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:bg-indigo-700 hover:-translate-y-1 active:translate-y-0 transition-all">
-                            Verify Answer
+                            Verificar Resposta
                         </button>
                         <button id="next-btn" onclick="fetchNewQuestion()" class="hidden flex-1 bg-emerald-600 text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:bg-emerald-700 hover:-translate-y-1 transition-all">
-                            Next Challenge →
+                            Próximo Desafio →
                         </button>
                         <button id="audio-btn" onclick="playAudio()" class="hidden px-6 bg-gray-100 rounded-3xl text-gray-600 hover:bg-gray-200 transition-all text-xl">
                             🔊
@@ -124,27 +154,27 @@
 
             <!-- Sidebar -->
             <div class="w-full lg:w-80 flex flex-col gap-6">
-                <!-- Scratchpad -->
+                <!-- Bloco de Notas -->
                 <div class="glass-card p-6 rounded-[2rem] shadow-xl flex-1 flex flex-col min-h-[250px]">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                            <span>📝</span> Scratchpad
+                            <span>📝</span> Bloco de Notas
                         </h3>
-                        <button onclick="document.getElementById('scratchpad').value=''" class="text-[10px] text-indigo-500 font-bold hover:underline">Clear</button>
+                        <button onclick="document.getElementById('scratchpad').value=''" class="text-[10px] text-indigo-500 font-bold hover:underline">Limpar</button>
                     </div>
                     <textarea id="scratchpad" 
-                              placeholder="Draft your ideas here..." 
+                              placeholder="Rascunhe aqui as suas ideias..." 
                               class="flex-1 w-full p-4 bg-gray-50/50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 text-sm leading-relaxed"></textarea>
                 </div>
 
-                <!-- Score Stats -->
+                <!-- Estatísticas -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="glass-card p-5 rounded-3xl text-center">
                         <p class="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Total</p>
                         <p id="total-correct" class="text-2xl font-black text-indigo-600">0</p>
                     </div>
                     <div class="glass-card p-5 rounded-3xl text-center">
-                        <p class="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">DET Est.</p>
+                        <p class="text-[10px] text-gray-400 font-black uppercase tracking-wider mb-1">Est. DET</p>
                         <p id="level-indicator" class="text-2xl font-black text-indigo-600">110-115</p>
                     </div>
                 </div>
@@ -154,7 +184,8 @@
     </div>
 
     <script>
-        const apiKey = ""; // Sistema provê a chave
+        // Chave API dinâmica
+        let apiKey = localStorage.getItem('det_mastery_api_key') || ""; 
         let streak = 0;
         let totalCorrect = 0;
         let currentQuestion = null;
@@ -164,29 +195,54 @@
         const difficultyLevels = ["B2 (100-115)", "C1 (120-135)", "C2 (140-160)"];
 
         const fallbackQuestions = [
-            { "phraseWithBlank": "The policy was intended to curb inflation; ________, it had the opposite effect.", "answer": "nevertheless", "translation": "A política visava conter a inflação; no entanto, teve o efeito oposto.", "explanation": "Use 'nevertheless' to introduce a contrast to what has just been said." },
-            { "phraseWithBlank": "The technology is quite promising, ________ it remains prohibitively expensive for most consumers.", "answer": "albeit", "translation": "A tecnologia é promissora, embora continue proibitivamente cara...", "explanation": "'Albeit' is a high-level synonym for 'although' or 'even though'." },
-            { "phraseWithBlank": "The CEO resigned unexpectedly. ________, the company's stock price plummeted within hours.", "answer": "consequently", "translation": "O CEO renunciou inesperadamente. Consequentemente, as ações despencaram.", "explanation": "Shows a direct cause-and-effect relationship." }
+            { "phraseWithBlank": "The policy was intended to curb inflation; ________, it had the opposite effect.", "answer": "nevertheless", "translation": "A política visava conter a inflação; no entanto, teve o efeito oposto.", "explanation": "Utilize 'nevertheless' para introduzir um contraste forte com o que foi dito." },
+            { "phraseWithBlank": "The technology is quite promising, ________ it remains prohibitively expensive for most consumers.", "answer": "albeit", "translation": "A tecnologia é promissora, embora continue proibitivamente cara...", "explanation": "'Albeit' é um sinónimo de alto nível para 'although'." },
+            { "phraseWithBlank": "The CEO resigned unexpectedly. ________, the company's stock price plummeted within hours.", "answer": "consequently", "translation": "O CEO renunciou inesperadamente. Consequentemente, as ações caíram.", "explanation": "Mostra uma relação direta de causa e efeito." }
         ];
 
         window.onload = () => {
+            document.getElementById('api-key-input').value = apiKey;
+            if (!apiKey) {
+                toggleSettings(true);
+            }
             fetchNewQuestion();
             document.getElementById('answer-input').focus();
         };
 
+        function toggleSettings(force) {
+            const panel = document.getElementById('settings-panel');
+            if (force === true) panel.classList.add('active');
+            else panel.classList.toggle('active');
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById('api-key-input').value.trim();
+            apiKey = val;
+            localStorage.setItem('det_mastery_api_key', val);
+            toggleSettings(false);
+            if (!currentQuestion) fetchNewQuestion();
+        }
+
         async function callGemini(payload) {
+            // Se não houver chave, usamos uma string vazia (o ambiente pode providenciar)
+            const activeKey = apiKey || "";
             const maxRetries = 5;
             const delays = [1000, 2000, 4000, 8000, 16000];
 
             for (let i = 0; i < maxRetries; i++) {
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${activeKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
                     if (response.ok) return await response.json();
+                    if (response.status === 403 || response.status === 401) {
+                        alert("Chave de API inválida ou sem permissão. Verifique as configurações.");
+                        toggleSettings(true);
+                        break;
+                    }
                     if (response.status !== 429 && response.status < 500) break;
                     
                 } catch (e) {
@@ -194,7 +250,7 @@
                 }
                 await new Promise(res => setTimeout(res, delays[i]));
             }
-            throw new Error("API Connection Failed");
+            throw new Error("Falha na ligação à API");
         }
 
         async function fetchNewQuestion() {
@@ -206,19 +262,19 @@
             document.getElementById('difficulty-label').innerText = levelText;
             document.getElementById('level-indicator').innerText = levelText.split(" ")[1].replace("(", "").replace(")", "");
 
-            const systemPrompt = `Act as a Duolingo English Test expert. Generate a high-level English grammar challenge focused on sentence connectors (transition words).
-            Return ONLY a valid JSON object:
+            const systemPrompt = `Aja como um especialista no Duolingo English Test (DET). Gere um desafio de gramática de alto nível focado em conectivos (palavras de transição).
+            Retorne APENAS um objeto JSON:
             {
-                "phraseWithBlank": "A sentence with ________ for the blank.",
-                "answer": "the_correct_connector",
-                "translation": "Portuguese translation of the sentence",
-                "explanation": "Brief linguistic explanation in English"
+                "phraseWithBlank": "Uma frase com ________ no lugar do conectivo.",
+                "answer": "o_conectivo_correto",
+                "translation": "Tradução da frase para português de Portugal",
+                "explanation": "Breve explicação linguística em inglês"
             }
-            Target Level: ${levelText}. Avoid common connectors like 'but' or 'and'. Focus on C1/C2 academic transitions.`;
+            Nível Alvo: ${levelText}. Evite conectivos comuns como 'but' ou 'and'. Foque em transições académicas C1/C2.`;
 
             try {
                 const data = await callGemini({
-                    contents: [{ parts: [{ text: "Generate a new connective challenge." }] }],
+                    contents: [{ parts: [{ text: "Gere um novo desafio de conectivos." }] }],
                     systemInstruction: { parts: [{ text: systemPrompt }] },
                     generationConfig: { responseMimeType: "application/json" }
                 });
@@ -229,7 +285,7 @@
                 isOffline = false;
                 document.getElementById('offline-status').classList.add('hidden');
             } catch (error) {
-                console.error("Gemini Error:", error);
+                console.error("Erro Gemini:", error);
                 loadOfflineQuestion();
             } finally {
                 toggleLoader(false);
@@ -259,10 +315,10 @@
             if (isCorrect) {
                 streak++;
                 totalCorrect++;
-                updateFeedbackUI(true, "Correct! Well done.");
+                updateFeedbackUI(true, "Correto! Bom trabalho.");
             } else {
                 streak = 0;
-                updateFeedbackUI(false, `Incorrect. The answer was "${currentQuestion.answer}"`);
+                updateFeedbackUI(false, `Incorreto. A resposta era "${currentQuestion.answer}"`);
             }
 
             document.getElementById('streak-count').innerText = streak;
@@ -288,7 +344,7 @@
             titleEl.innerText = title;
         }
 
-        // Interação com Palavras
+        // Interação com Palavras (Duplo Clique)
         document.getElementById('phrase-display').addEventListener('dblclick', function(e) {
             const selection = window.getSelection().toString().trim();
             if (selection && selection.length > 1) {
@@ -316,15 +372,15 @@
         async function translateSelectedWord() {
             if (!selectedWord || isOffline) return;
             const resEl = document.getElementById('word-translation-result');
-            resEl.innerText = "Translating...";
+            resEl.innerText = "A traduzir...";
             resEl.classList.remove('hidden');
 
             try {
                 const data = await callGemini({
-                    contents: [{ parts: [{ text: `Translate "${selectedWord}" to Portuguese. Return only the translation.` }] }]
+                    contents: [{ parts: [{ text: `Translate "${selectedWord}" to Portuguese (Portugal). Return only the translation.` }] }]
                 });
-                resEl.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error";
-            } catch (err) { resEl.innerText = "API Error"; }
+                resEl.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro";
+            } catch (err) { resEl.innerText = "Erro na API"; }
         }
 
         function toggleLoader(show) {
