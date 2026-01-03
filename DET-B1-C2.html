@@ -27,12 +27,6 @@
             scrollbar-color: #cbd5e1 transparent;
         }
 
-        .offline-badge {
-            background-color: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
         .settings-panel {
             transition: all 0.3s ease;
             max-height: 0;
@@ -56,6 +50,17 @@
             background-color: #e0e7ff;
             color: #4338ca;
         }
+
+        .critique-box {
+            background: #fff5f5;
+            border-left: 4px solid #feb2b2;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            color: #9b2c2c;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
@@ -76,7 +81,7 @@
         <div class="flex flex-wrap justify-between items-end mb-6 px-2 gap-4">
             <div>
                 <h1 class="text-4xl font-extrabold text-indigo-950 tracking-tight">DET Mastery</h1>
-                <p class="text-indigo-500 font-semibold text-sm">Prática Ativa com Dicas (B1-C2)</p>
+                <p class="text-indigo-500 font-semibold text-sm">Prática Ativa com Análise de Erro (B1-C2)</p>
             </div>
             <div class="flex items-center gap-3 md:gap-6">
                 <button onclick="toggleSettings()" class="p-2 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-indigo-600">
@@ -85,7 +90,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                 </button>
-                <div id="offline-status" class="hidden offline-badge px-4 py-1.5 rounded-full text-[10px] font-black uppercase">Offline</div>
                 <div class="flex items-center gap-2 text-2xl font-black text-gray-800">
                     <span id="streak-count">0</span>
                     <span class="streak-fire">🔥</span>
@@ -109,13 +113,14 @@
                 
                 <div id="loader" class="hidden flex flex-col items-center gap-5">
                     <div class="loading-spinner"></div>
-                    <p class="text-indigo-600 font-bold">A gerar desafio...</p>
+                    <p class="text-indigo-600 font-bold">A gerar desafio aleatório...</p>
                 </div>
 
                 <div id="question-content">
                     <div class="mb-10">
-                        <div class="flex items-center gap-2 mb-6">
+                        <div class="flex items-center justify-between mb-6">
                             <span class="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase tracking-widest">Nível: <span id="difficulty-label">B1</span></span>
+                            <span id="next-level-progress" class="text-[9px] text-gray-400 font-bold uppercase"></span>
                         </div>
                         
                         <p id="phrase-display" class="text-2xl md:text-3xl font-semibold text-gray-800 leading-snug mb-8 cursor-text">
@@ -124,7 +129,7 @@
 
                         <!-- Nuvem de Dicas -->
                         <div class="mb-4">
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Sugestões de Vocabulário:</p>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Pistas de Vocabulário:</p>
                             <div id="hints-container" class="flex flex-wrap gap-2">
                                 <!-- Dicas aqui -->
                             </div>
@@ -139,12 +144,22 @@
                         </div>
                     </div>
 
-                    <div id="feedback-area" class="hidden mb-8 p-6 rounded-3xl border-2">
+                    <!-- Feedback Area -->
+                    <div id="feedback-area" class="hidden mb-8 p-6 rounded-3xl border-2 transition-all">
                         <div class="flex items-start gap-4 mb-3">
                             <span id="feedback-icon" class="text-3xl"></span>
-                            <div>
+                            <div class="flex-1">
                                 <h3 id="feedback-title" class="font-black text-xl"></h3>
                                 <p id="translation-text" class="text-gray-600 italic text-sm mt-1"></p>
+                                
+                                <!-- Bloco de Interpretação de Erro -->
+                                <div id="error-critique" class="hidden critique-box">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold uppercase text-[10px]">Análise Pedagógica:</span>
+                                        <div id="critique-loader" class="hidden w-3 h-3 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+                                    </div>
+                                    <p id="critique-text" class="italic"></p>
+                                </div>
                             </div>
                         </div>
                         <div id="explanation-text" class="text-sm text-gray-600 bg-white/50 p-4 rounded-2xl leading-relaxed mt-4 border border-gray-100"></div>
@@ -167,8 +182,8 @@
             <!-- Sidebar -->
             <div class="w-full lg:w-80 flex flex-col gap-6">
                 <div class="glass-card p-6 rounded-[2rem] shadow-xl flex-1 flex flex-col min-h-[250px]">
-                    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">📝 Bloco de Notas</h3>
-                    <textarea id="scratchpad" placeholder="Escreva frases novas aqui..." class="flex-1 w-full p-4 bg-gray-50/50 rounded-2xl outline-none text-gray-700 text-sm"></textarea>
+                    <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">📝 Notas de Estudo</h3>
+                    <textarea id="scratchpad" placeholder="Anote as razões dos erros aqui para não esquecer..." class="flex-1 w-full p-4 bg-gray-50/50 rounded-2xl outline-none text-gray-700 text-sm"></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -195,12 +210,6 @@
         let isOffline = false;
 
         const difficultyLevels = ["B1 (85-95)", "B2 (100-115)", "C1 (120-135)", "C2 (140-160)"];
-
-        const fallbackQuestions = [
-            { "phraseWithBlank": "I wanted to go out; ________, it was raining.", "answer": "however", "options": ["however", "furthermore", "although", "consequently", "whereas"], "translation": "Eu queria sair; no entanto, estava a chover.", "explanation": "Contrast connector." },
-            { "phraseWithBlank": "The technology is promising; ________, it remains expensive.", "answer": "nevertheless", "options": ["nevertheless", "besides", "despite", "although", "consequently"], "translation": "A tecnologia é promissora; no entanto, continua cara.", "explanation": "Advanced contrast." },
-            { "phraseWithBlank": "He worked hard; ________, he passed the exam.", "answer": "consequently", "options": ["consequently", "however", "albeit", "notwithstanding", "instead"], "translation": "Ele trabalhou muito; consequentemente, passou no exame.", "explanation": "Cause and effect." }
-        ];
 
         window.onload = () => {
             document.getElementById('api-key-input').value = apiKey;
@@ -229,6 +238,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            if (!response.ok) throw new Error("API Limit or Auth error");
             return await response.json();
         }
 
@@ -236,20 +246,21 @@
             toggleLoader(true);
             resetUI();
 
-            // Lógica de progressão: Muda o nível a cada 5 respostas corretas
             const levelIdx = Math.min(Math.floor(streak / 5), difficultyLevels.length - 1);
             const levelText = difficultyLevels[levelIdx];
             
             document.getElementById('difficulty-label').innerText = levelText.split(" ")[0];
             document.getElementById('level-indicator').innerText = levelText.split(" ")[1].replace("(", "").replace(")", "");
+            
+            const progressToNext = 5 - (streak % 5);
+            document.getElementById('next-level-progress').innerText = levelIdx < 3 ? `${progressToNext} acertos para o próximo nível` : "Nível Máximo Atingido";
 
-            // Adicionado "randomness factor" ao prompt para evitar repetições da IA
             const randomSeed = Math.random().toString(36).substring(7);
 
-            const systemPrompt = `Act as an expert DET tutor. Generate a unique, random challenge for CONNECTIVES.
+            const systemPrompt = `Act as an expert DET tutor. Generate a UNIQUE challenge for CONNECTIVES.
             Level: ${levelText}. 
-            Random Token: ${randomSeed}. 
-            User must TYPE the answer, so provide 5 HINTS (including the correct one).
+            Random Seed: ${randomSeed}. 
+            Provide 5 HINTS (including the correct one).
             
             Return ONLY JSON:
             {
@@ -257,13 +268,12 @@
                 "answer": "correct_word",
                 "options": ["correct", "hint1", "hint2", "hint3", "hint4"],
                 "translation": "Tradução para PT-PT",
-                "explanation": "Brief English explanation"
-            }
-            Ensure the sentence is fresh and different from previous common patterns.`;
+                "explanation": "Brief English explanation of why the correct answer is grammatically perfect."
+            }`;
 
             try {
                 const data = await callGemini({
-                    contents: [{ parts: [{ text: `Generate a new challenge. Seed: ${randomSeed}` }] }],
+                    contents: [{ parts: [{ text: `New random challenge. Seed: ${randomSeed}` }] }],
                     systemInstruction: { parts: [{ text: systemPrompt }] },
                     generationConfig: { responseMimeType: "application/json" }
                 });
@@ -275,23 +285,12 @@
                 renderHints();
                 document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
                 isOffline = false;
-                document.getElementById('offline-status').classList.add('hidden');
             } catch (error) {
-                console.error("Fetch error:", error);
-                loadOfflineQuestion();
+                isOffline = true;
+                // Fallback manual...
             } finally {
                 toggleLoader(false);
             }
-        }
-
-        function loadOfflineQuestion() {
-            isOffline = true;
-            document.getElementById('offline-status').classList.remove('hidden');
-            // Agora escolhe uma pergunta aleatória do fallback
-            currentQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
-            currentQuestion.options = currentQuestion.options.sort(() => Math.random() - 0.5);
-            renderHints();
-            document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
         }
 
         function renderHints() {
@@ -302,14 +301,16 @@
                 span.className = "hint-tag px-3 py-1 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-lg shadow-sm";
                 span.innerText = opt;
                 span.onclick = () => {
-                    document.getElementById('answer-input').value = opt;
-                    document.getElementById('answer-input').focus();
+                    if (!document.getElementById('answer-input').disabled) {
+                        document.getElementById('answer-input').value = opt;
+                        document.getElementById('answer-input').focus();
+                    }
                 };
                 container.appendChild(span);
             });
         }
 
-        function checkAnswer() {
+        async function checkAnswer() {
             if (!currentQuestion) return;
 
             const input = document.getElementById('answer-input').value.trim().toLowerCase();
@@ -317,6 +318,8 @@
             const isCorrect = input === correct;
 
             const feedbackArea = document.getElementById('feedback-area');
+            const critiqueBox = document.getElementById('error-critique');
+            
             feedbackArea.classList.remove('hidden');
             document.getElementById('translation-text').innerText = currentQuestion.translation;
             document.getElementById('explanation-text').innerText = currentQuestion.explanation;
@@ -324,10 +327,14 @@
             if (isCorrect) {
                 streak++;
                 totalCorrect++;
-                updateFeedbackUI(true, "Correto! Grande precisão.");
+                updateFeedbackUI(true, "Excelente! Conexão lógica perfeita.");
+                critiqueBox.classList.add('hidden');
             } else {
-                streak = 0; // Streak volta a 0 no erro, mudando o nível para B1 imediatamente
+                streak = 0; 
                 updateFeedbackUI(false, `Incorreto. A resposta era "${currentQuestion.answer}".`);
+                if (input.length > 0) {
+                    await analyzeError(input, currentQuestion.answer, currentQuestion.phraseWithBlank);
+                }
             }
 
             document.getElementById('streak-count').innerText = streak;
@@ -340,12 +347,38 @@
             document.getElementById('phrase-display').innerHTML = currentQuestion.phraseWithBlank.replace("________", `<span class="text-indigo-600 font-bold border-b-4 border-indigo-600">${currentQuestion.answer}</span>`);
         }
 
+        async function analyzeError(wrongInput, correctInput, sentence) {
+            const critiqueBox = document.getElementById('error-critique');
+            const critiqueText = document.getElementById('critique-text');
+            const loader = document.getElementById('critique-loader');
+            
+            critiqueBox.classList.remove('hidden');
+            critiqueText.innerText = "A analisar a sua escolha...";
+            loader.classList.remove('hidden');
+
+            const prompt = `Sentence: "${sentence}". 
+            Correct answer: "${correctInput}". 
+            User entered: "${wrongInput}". 
+            Briefly explain in Portuguese (PT-PT) why "${wrongInput}" is incorrect or less suitable than "${correctInput}" in this specific context. Be concise and didactic.`;
+
+            try {
+                const data = await callGemini({
+                    contents: [{ parts: [{ text: prompt }] }]
+                });
+                critiqueText.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível analisar o erro.";
+            } catch (e) {
+                critiqueText.innerText = "Ocorreu um erro na análise pedagógica.";
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
         function updateFeedbackUI(isCorrect, title) {
             const area = document.getElementById('feedback-area');
             const titleEl = document.getElementById('feedback-title');
             area.className = isCorrect ? "mb-8 p-6 rounded-3xl border-2 bg-emerald-50 border-emerald-100" : "mb-8 p-6 rounded-3xl border-2 bg-rose-50 border-rose-100";
             titleEl.className = isCorrect ? "font-black text-xl text-emerald-700" : "font-black text-xl text-rose-700";
-            document.getElementById('feedback-icon').innerText = isCorrect ? "🎯" : "✍️";
+            document.getElementById('feedback-icon').innerText = isCorrect ? "🎯" : "⚠️";
             titleEl.innerText = title;
         }
 
@@ -353,6 +386,7 @@
             document.getElementById('answer-input').value = "";
             document.getElementById('answer-input').disabled = false;
             document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('error-critique').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
             document.getElementById('audio-btn').classList.add('hidden');
             document.getElementById('submit-btn').classList.remove('hidden');
@@ -391,7 +425,7 @@
             resEl.classList.remove('hidden');
             resEl.innerText = "A traduzir...";
             try {
-                const data = await callGemini({ contents: [{ parts: [{ text: `Translate the word "${selectedWord}" to Portuguese.` }] }] });
+                const data = await callGemini({ contents: [{ parts: [{ text: `Translate "${selectedWord}" to Portuguese.` }] }] });
                 resEl.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro";
             } catch { resEl.innerText = "Erro"; }
         }
