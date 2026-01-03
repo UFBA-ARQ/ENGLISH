@@ -197,7 +197,9 @@
         const difficultyLevels = ["B1 (85-95)", "B2 (100-115)", "C1 (120-135)", "C2 (140-160)"];
 
         const fallbackQuestions = [
-            { "phraseWithBlank": "I wanted to go out; ________, it was raining.", "answer": "however", "options": ["however", "furthermore", "although", "consequently", "whereas"], "translation": "Eu queria sair; no entanto, estava a chover.", "explanation": "Contrast connector." }
+            { "phraseWithBlank": "I wanted to go out; ________, it was raining.", "answer": "however", "options": ["however", "furthermore", "although", "consequently", "whereas"], "translation": "Eu queria sair; no entanto, estava a chover.", "explanation": "Contrast connector." },
+            { "phraseWithBlank": "The technology is promising; ________, it remains expensive.", "answer": "nevertheless", "options": ["nevertheless", "besides", "despite", "although", "consequently"], "translation": "A tecnologia é promissora; no entanto, continua cara.", "explanation": "Advanced contrast." },
+            { "phraseWithBlank": "He worked hard; ________, he passed the exam.", "answer": "consequently", "options": ["consequently", "however", "albeit", "notwithstanding", "instead"], "translation": "Ele trabalhou muito; consequentemente, passou no exame.", "explanation": "Cause and effect." }
         ];
 
         window.onload = () => {
@@ -234,14 +236,19 @@
             toggleLoader(true);
             resetUI();
 
-            const levelIdx = Math.min(Math.floor(streak / 3), difficultyLevels.length - 1);
+            // Lógica de progressão: Muda o nível a cada 5 respostas corretas
+            const levelIdx = Math.min(Math.floor(streak / 5), difficultyLevels.length - 1);
             const levelText = difficultyLevels[levelIdx];
             
             document.getElementById('difficulty-label').innerText = levelText.split(" ")[0];
             document.getElementById('level-indicator').innerText = levelText.split(" ")[1].replace("(", "").replace(")", "");
 
-            const systemPrompt = `Act as an expert DET tutor. Generate a challenge for CONNECTIVES.
-            Level: ${levelText}.
+            // Adicionado "randomness factor" ao prompt para evitar repetições da IA
+            const randomSeed = Math.random().toString(36).substring(7);
+
+            const systemPrompt = `Act as an expert DET tutor. Generate a unique, random challenge for CONNECTIVES.
+            Level: ${levelText}. 
+            Random Token: ${randomSeed}. 
             User must TYPE the answer, so provide 5 HINTS (including the correct one).
             
             Return ONLY JSON:
@@ -251,11 +258,12 @@
                 "options": ["correct", "hint1", "hint2", "hint3", "hint4"],
                 "translation": "Tradução para PT-PT",
                 "explanation": "Brief English explanation"
-            }`;
+            }
+            Ensure the sentence is fresh and different from previous common patterns.`;
 
             try {
                 const data = await callGemini({
-                    contents: [{ parts: [{ text: "New challenge with 5 hints." }] }],
+                    contents: [{ parts: [{ text: `Generate a new challenge. Seed: ${randomSeed}` }] }],
                     systemInstruction: { parts: [{ text: systemPrompt }] },
                     generationConfig: { responseMimeType: "application/json" }
                 });
@@ -267,14 +275,23 @@
                 renderHints();
                 document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
                 isOffline = false;
+                document.getElementById('offline-status').classList.add('hidden');
             } catch (error) {
-                isOffline = true;
-                currentQuestion = fallbackQuestions[0];
-                renderHints();
-                document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
+                console.error("Fetch error:", error);
+                loadOfflineQuestion();
             } finally {
                 toggleLoader(false);
             }
+        }
+
+        function loadOfflineQuestion() {
+            isOffline = true;
+            document.getElementById('offline-status').classList.remove('hidden');
+            // Agora escolhe uma pergunta aleatória do fallback
+            currentQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+            currentQuestion.options = currentQuestion.options.sort(() => Math.random() - 0.5);
+            renderHints();
+            document.getElementById('phrase-display').innerText = currentQuestion.phraseWithBlank;
         }
 
         function renderHints() {
@@ -284,7 +301,6 @@
                 const span = document.createElement('span');
                 span.className = "hint-tag px-3 py-1 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-lg shadow-sm";
                 span.innerText = opt;
-                // Ao clicar na dica, preenche o input (opcional, facilita mas ainda requer clicar em Verificar)
                 span.onclick = () => {
                     document.getElementById('answer-input').value = opt;
                     document.getElementById('answer-input').focus();
@@ -310,7 +326,7 @@
                 totalCorrect++;
                 updateFeedbackUI(true, "Correto! Grande precisão.");
             } else {
-                streak = 0;
+                streak = 0; // Streak volta a 0 no erro, mudando o nível para B1 imediatamente
                 updateFeedbackUI(false, `Incorreto. A resposta era "${currentQuestion.answer}".`);
             }
 
@@ -355,7 +371,6 @@
             window.speechSynthesis.speak(utt);
         }
 
-        // Tradução de palavras via duplo clique
         document.getElementById('phrase-display').addEventListener('dblclick', async (e) => {
             const word = window.getSelection().toString().trim();
             if (!word) return;
@@ -376,7 +391,7 @@
             resEl.classList.remove('hidden');
             resEl.innerText = "A traduzir...";
             try {
-                const data = await callGemini({ contents: [{ parts: [{ text: `Translate "${selectedWord}" to Portuguese.` }] }] });
+                const data = await callGemini({ contents: [{ parts: [{ text: `Translate the word "${selectedWord}" to Portuguese.` }] }] });
                 resEl.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erro";
             } catch { resEl.innerText = "Erro"; }
         }
