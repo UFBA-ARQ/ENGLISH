@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master of English Tenses - Quiz IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="max-w-xl w-full glass rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-indigo-600 p-6 text-white flex justify-between items-center">
+            <div class="text-left">
+                <h1 class="text-2xl font-bold">English Tenses Quiz</h1>
+                <p class="text-indigo-100 text-sm mt-1">Escolha um tempo verbal ou jogue aleatório</p>
+            </div>
+            <button onclick="toggleSettings()" class="p-2 hover:bg-indigo-500 rounded-full transition-colors" title="Configurar API">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settings-panel" class="hidden px-8 py-6 bg-slate-100 border-b border-slate-200">
+            <h3 class="text-sm font-bold text-slate-700 uppercase mb-3">Configurações da API</h3>
+            <div class="space-y-3">
+                <p class="text-[11px] text-slate-500 leading-tight">Insira sua Gemini API Key abaixo para habilitar o quiz. A chave é salva localmente no seu navegador.</p>
+                <div class="flex gap-2">
+                    <input type="password" id="api-key-input" placeholder="Sua Gemini API Key..." 
+                        class="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button onclick="saveApiKey()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors">
+                        Salvar
+                    </button>
+                </div>
+                <div id="api-status" class="text-[10px] font-bold uppercase hidden"></div>
+            </div>
+        </div>
+
+        <!-- Tense Selector -->
+        <div class="px-8 pt-6 pb-2">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Configuração do Quiz</label>
+            <select id="tense-selector" onchange="resetQuiz()" class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer shadow-sm">
+                <option value="random">🎲 Aleatório (Todos os tempos)</option>
+                <optgroup label="Present Tenses">
+                    <option value="Simple Present">Simple Present</option>
+                    <option value="Present Continuous">Present Continuous</option>
+                    <option value="Present Perfect">Present Perfect</option>
+                    <option value="Present Perfect Continuous">Present Perfect Continuous</option>
+                </optgroup>
+                <optgroup label="Past Tenses">
+                    <option value="Simple Past">Simple Past</option>
+                    <option value="Past Continuous">Past Continuous</option>
+                    <option value="Past Perfect">Past Perfect</option>
+                    <option value="Past Perfect Continuous">Past Perfect Continuous</option>
+                </optgroup>
+                <optgroup label="Future Tenses">
+                    <option value="Simple Future">Simple Future</option>
+                    <option value="Future Continuous">Future Continuous</option>
+                    <option value="Future Perfect">Future Perfect</option>
+                    <option value="Future Perfect Continuous">Future Perfect Continuous</option>
+                </optgroup>
+                <optgroup label="Others">
+                    <option value="Conditional (Would)">Conditional (Would)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <!-- Progress/Score -->
+        <div class="flex justify-between items-center px-8 py-3 bg-slate-50/50">
+            <div class="text-xs font-bold text-slate-500 uppercase">Score: <span id="score" class="text-indigo-600">0</span></div>
+            <div class="text-xs font-bold text-slate-500 uppercase">Questão: <span id="question-count" class="text-indigo-600">0</span></div>
+        </div>
+
+        <!-- Quiz Content -->
+        <div class="p-8 pt-2">
+            <div id="loading-state" class="hidden space-y-4">
+                <div class="h-4 w-3/4 loading-shimmer rounded"></div>
+                <div class="h-10 w-full loading-shimmer rounded-xl mt-8"></div>
+            </div>
+
+            <div id="quiz-ui">
+                <div id="no-api-msg" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm text-center">
+                    ⚠️ Por favor, clique na engrenagem acima e configure sua <strong>API Key</strong> para começar.
+                </div>
+
+                <div id="question-area">
+                    <div class="mb-6">
+                        <span class="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest mb-2" id="tense-badge">
+                            Aguardando API...
+                        </span>
+                        <h2 id="scenario-text" class="text-lg text-slate-800 font-semibold leading-tight min-h-[3rem]">
+                            Configure sua chave para gerar desafios.
+                        </h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <input type="text" id="user-answer" placeholder="Escreva a tradução curta..." 
+                            class="w-full px-4 py-4 rounded-xl border-2 border-slate-200 focus:border-indigo-500 outline-none transition-all text-lg font-medium"
+                            autocomplete="off">
+                        
+                        <div id="feedback-box" class="hidden p-4 rounded-xl text-sm leading-snug"></div>
+
+                        <div class="flex gap-3 pt-2">
+                            <button id="submit-btn" onclick="checkAnswer()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Verificar
+                            </button>
+                            <button id="next-btn" onclick="loadNextQuestion()" class="hidden flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all active:scale-95">
+                                Próxima →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-100 text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            Foco em Estruturas Básicas & Memorização
+        </div>
+    </div>
+
+    <script>
+        let apiKey = localStorage.getItem('gemini_quiz_api_key') || "";
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'english-tenses-api-manager';
+
+        const tenses = [
+            "Simple Present", "Present Continuous", "Present Perfect", "Present Perfect Continuous",
+            "Simple Past", "Past Continuous", "Past Perfect", "Past Perfect Continuous",
+            "Simple Future", "Future Continuous", "Future Perfect", "Future Perfect Continuous",
+            "Conditional (Would)"
+        ];
+
+        let currentQuestion = null;
+        let score = 0;
+        let questionCount = 0;
+
+        const ui = {
+            loading: document.getElementById('loading-state'),
+            quiz: document.getElementById('quiz-ui'),
+            questionArea: document.getElementById('question-area'),
+            noApiMsg: document.getElementById('no-api-msg'),
+            scenario: document.getElementById('scenario-text'),
+            tenseBadge: document.getElementById('tense-badge'),
+            input: document.getElementById('user-answer'),
+            feedback: document.getElementById('feedback-box'),
+            submitBtn: document.getElementById('submit-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            score: document.getElementById('score'),
+            count: document.getElementById('question-count'),
+            selector: document.getElementById('tense-selector'),
+            settingsPanel: document.getElementById('settings-panel'),
+            apiKeyInput: document.getElementById('api-key-input'),
+            apiStatus: document.getElementById('api-status')
+        };
+
+        ui.apiKeyInput.value = apiKey;
+
+        function toggleSettings() {
+            ui.settingsPanel.classList.toggle('hidden');
+        }
+
+        function saveApiKey() {
+            const newKey = ui.apiKeyInput.value.trim();
+            if (newKey) {
+                apiKey = newKey;
+                localStorage.setItem('gemini_quiz_api_key', newKey);
+                ui.apiStatus.innerText = "Chave salva com sucesso!";
+                ui.apiStatus.className = "text-[10px] font-bold uppercase text-green-600 block";
+                setTimeout(() => ui.settingsPanel.classList.add('hidden'), 1000);
+                checkApiConfig();
+            } else {
+                ui.apiStatus.innerText = "A chave não pode estar vazia.";
+                ui.apiStatus.className = "text-[10px] font-bold uppercase text-red-600 block";
+            }
+        }
+
+        function checkApiConfig() {
+            if (!apiKey) {
+                ui.noApiMsg.classList.remove('hidden');
+                ui.questionArea.classList.add('opacity-30', 'pointer-events-none');
+                ui.submitBtn.disabled = true;
+            } else {
+                ui.noApiMsg.classList.add('hidden');
+                ui.questionArea.classList.remove('opacity-30', 'pointer-events-none');
+                ui.submitBtn.disabled = false;
+                if (questionCount === 0) loadNextQuestion();
+            }
+        }
+
+        async function callGemini(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            let retries = 0;
+            while (retries < 5) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                responseSchema: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        scenario: { type: "STRING" },
+                                        tense: { type: "STRING" },
+                                        correctAnswer: { type: "STRING" },
+                                        explanation: { type: "STRING" }
+                                    },
+                                    required: ["scenario", "tense", "correctAnswer", "explanation"]
+                                }
+                            }
+                        })
+                    });
+
+                    if (response.status === 403 || response.status === 401) {
+                        throw new Error('API Key Inválida');
+                    }
+
+                    const data = await response.json();
+                    return JSON.parse(data.candidates[0].content.parts[0].text);
+                } catch (e) {
+                    if (e.message === 'API Key Inválida') throw e;
+                    retries++;
+                    await new Promise(res => setTimeout(res, Math.pow(2, retries) * 500));
+                }
+            }
+            throw new Error('Erro na conexão');
+        }
+
+        function resetQuiz() {
+            score = 0;
+            questionCount = 0;
+            ui.score.innerText = "0";
+            ui.count.innerText = "0";
+            if (apiKey) loadNextQuestion();
+        }
+
+        async function loadNextQuestion() {
+            if (!apiKey) return;
+            
+            setLoading(true);
+            ui.feedback.classList.add('hidden');
+            ui.input.value = '';
+            ui.submitBtn.classList.remove('hidden');
+            ui.submitBtn.disabled = false;
+            ui.nextBtn.classList.add('hidden');
+            ui.input.disabled = false;
+            ui.input.focus();
+
+            const selectedValue = ui.selector.value;
+            const targetTense = selectedValue === "random" 
+                ? tenses[Math.floor(Math.random() * tenses.length)]
+                : selectedValue;
+            
+            const prompt = `Gere uma questão de inglês simplificada para o tempo: "${targetTense}".
+            REGRAS CRÍTICAS:
+            1. 'scenario': Uma instrução curtíssima em português (Ex: "Diga que ela estuda").
+            2. 'correctAnswer': Tradução EXATA e MINIMALISTA do cenário em inglês. NÃO adicione palavras ou advérbios que não foram pedidos no comando (Ex: se o comando é "Diga que ela estuda", a resposta deve ser APENAS "She studies", sem adicionar "hard", "now", etc).
+            3. 'explanation': Uma explicação de uma linha focada apenas na fórmula.
+            Mantenha a correspondência perfeita entre o comando em português e a tradução.`;
+
+            try {
+                currentQuestion = await callGemini(prompt);
+                ui.scenario.innerText = currentQuestion.scenario;
+                ui.tenseBadge.innerText = currentQuestion.tense;
+                questionCount++;
+                ui.count.innerText = questionCount;
+                setLoading(false);
+            } catch (error) {
+                ui.scenario.innerText = error.message === 'API Key Inválida' 
+                    ? "Chave de API inválida. Verifique nas configurações." 
+                    : "Erro de conexão. Clique em próxima.";
+                ui.nextBtn.classList.remove('hidden');
+                setLoading(false);
+            }
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                ui.loading.classList.remove('hidden');
+                ui.questionArea.classList.add('hidden');
+            } else {
+                ui.loading.classList.add('hidden');
+                ui.questionArea.classList.remove('hidden');
+            }
+        }
+
+        function checkAnswer() {
+            // Limpeza extra de espaços e pontuação para evitar erros bobos
+            const cleanString = (s) => s.trim().toLowerCase().replace(/[.!?]/g, "").replace(/\s+/g, " ");
+            const userVal = cleanString(ui.input.value);
+            const correctVal = cleanString(currentQuestion.correctAnswer);
+            
+            ui.submitBtn.classList.add('hidden');
+            ui.input.disabled = true;
+            ui.nextBtn.classList.remove('hidden');
+
+            const isCorrect = userVal === correctVal;
+
+            if (isCorrect) {
+                score++;
+                ui.score.innerText = score;
+                showFeedback(`<strong>Correto!</strong><br>${currentQuestion.explanation}`, true);
+            } else {
+                showFeedback(`<strong>Ops! O correto é:</strong><br><span class="text-lg font-bold">"${currentQuestion.correctAnswer}"</span><br><span class="text-xs mt-1 block">${currentQuestion.explanation}</span>`, false);
+            }
+        }
+
+        function showFeedback(msg, isSuccess) {
+            ui.feedback.innerHTML = msg;
+            ui.feedback.classList.remove('hidden');
+            const colorClass = isSuccess ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200';
+            ui.feedback.className = `p-4 rounded-xl text-sm leading-snug border ${colorClass}`;
+        }
+
+        ui.input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (!ui.submitBtn.classList.contains('hidden')) checkAnswer();
+                else loadNextQuestion();
+            }
+        });
+
+        window.onload = checkApiConfig;
+    </script>
+</body>
+</html>
